@@ -32,9 +32,7 @@ function badge(score) {
   return `<span class="badge score-bad">高风险 ${score}</span>`;
 }
 
-function byId(id) {
-  return document.getElementById(id);
-}
+function byId(id) { return document.getElementById(id); }
 
 function setOptions(id, values) {
   const sel = byId(id);
@@ -64,8 +62,6 @@ function render() {
     })
     .sort((a, b) => calcScore(b) - calcScore(a));
 
-  state.filtered = arr;
-
   const ok = arr.filter((i) => bucket(calcScore(i)) === "ok").length;
   const mid = arr.filter((i) => bucket(calcScore(i)) === "mid").length;
   const bad = arr.filter((i) => bucket(calcScore(i)) === "bad").length;
@@ -75,11 +71,9 @@ function render() {
   byId("k-mid").textContent = mid;
   byId("k-bad").textContent = bad;
 
-  byId("list").innerHTML =
-    arr
-      .map((it) => {
-        const s = calcScore(it);
-        return `
+  byId("list").innerHTML = arr.map((it) => {
+    const s = calcScore(it);
+    return `
       <article class="card">
         <div class="row">
           <div>
@@ -105,26 +99,14 @@ function render() {
         ${it.notes ? `<div class="meta">备注：${it.notes}</div>` : ""}
       </article>
     `;
-      })
-      .join("") || `<div class="card">没有匹配结果</div>`;
-}
-
-async function loadItems() {
-  // 优先读 D1 API，失败回退到静态 JSON
-  try {
-    const r = await fetch('/api/items?limit=500');
-    if (r.ok) {
-      const data = await r.json();
-      if (Array.isArray(data.items)) return data.items;
-    }
-  } catch (_) {}
-
-  const resp = await fetch('../data/items.json');
-  return resp.json();
+  }).join("") || `<div class="card">没有匹配结果</div>`;
 }
 
 async function init() {
-  const items = await loadItems();
+  const r = await fetch('/api/items?limit=500');
+  if (!r.ok) throw new Error(`API错误: ${r.status}`);
+  const data = await r.json();
+  const items = data.items || [];
   state.items = items;
 
   setOptions('platform', items.map((i) => i.sourcePlatform));
@@ -136,5 +118,5 @@ async function init() {
 }
 
 init().catch((err) => {
-  byId('list').innerHTML = `<div class="card">加载失败：${String(err)}</div>`;
+  byId('list').innerHTML = `<div class="card">加载失败：${String(err)}。请先完成 D1 + Functions 配置。</div>`;
 });

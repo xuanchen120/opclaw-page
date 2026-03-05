@@ -25,3 +25,4 @@ CREATE TABLE IF NOT EXISTS leads (
 CREATE INDEX IF NOT EXISTS idx_leads_posted_at ON leads(posted_at);
 CREATE INDEX IF NOT EXISTS idx_leads_source_platform ON leads(source_platform);
 CREATE INDEX IF NOT EXISTS idx_leads_type ON leads(type);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_source_url_unique ON leads(source_url);
