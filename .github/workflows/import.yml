@@ -1,0 +1,20 @@
+name: Radar Import
+
+on:
+  schedule:
+    - cron: '5 */2 * * *'  # every 2 hours
+  workflow_dispatch: {}
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci || npm i
+      - run: npm run import:sources
+        env:
+          RADAR_BASE_URL: ${{ secrets.RADAR_BASE_URL }}
+          RADAR_ADMIN_TOKEN: ${{ secrets.RADAR_ADMIN_TOKEN }}

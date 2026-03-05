@@ -41,12 +41,23 @@ function setOptions(id, values) {
   sel.innerHTML = first + uniq.map((v) => `<option value="${v}">${v}</option>`).join("");
 }
 
+function execFieldCount(it) {
+  let n = 0;
+  if (it.signals?.clearBudget) n++;
+  if (it.contact) n++;
+  if (it.signals?.clearScope) n++;
+  const text = `${it.description || ''} ${it.notes || ''}`;
+  if (/[0-9]+\s*(天|周|月)|截止|ddl/i.test(text)) n++;
+  return n;
+}
+
 function render() {
   const q = byId("q").value.trim().toLowerCase();
   const p = byId("platform").value;
   const t = byId("type").value;
   const r = byId("risk").value;
   const sk = byId("skill").value;
+  const executableOnly = !!byId('executableOnly')?.checked;
 
   const arr = state.items
     .filter((it) => {
@@ -58,6 +69,7 @@ function render() {
       if (t && it.type !== t) return false;
       if (r && b !== r) return false;
       if (sk && !(it.skills || []).includes(sk)) return false;
+      if (executableOnly && execFieldCount(it) < 2) return false;
       return true;
     })
     .sort((a, b) => calcScore(b) - calcScore(a));
@@ -130,7 +142,7 @@ async function init() {
   setOptions('type', items.map((i) => i.type));
   setOptions('skill', items.flatMap((i) => i.skills || []));
 
-  ['q', 'platform', 'type', 'risk', 'skill'].forEach((id) => byId(id).addEventListener('input', render));
+  ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly'].forEach((id) => byId(id).addEventListener('input', render));
   render();
 }
 

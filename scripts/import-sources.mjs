@@ -16,7 +16,8 @@ const body = {
     url: s.url,
     sourcePlatform: s.sourcePlatform,
     sourceName: s.sourceName,
-    notes: `tier:${s.tier || 'secondary'}`
+    notes: `tier:${s.tier || 'secondary'}`,
+    maxPosts: s.maxPosts || 25
   }))
 };
 

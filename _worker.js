@@ -31,6 +31,40 @@ function detectSkills(text) {
   return map.filter((x) => t.includes(x));
 }
 
+function extractContact(text) {
+  const m = text.match(/@([a-zA-Z0-9_]{4,})/);
+  return m ? `@${m[1]}` : "";
+}
+
+function extractTelegramPosts(html, defaultPlatform, defaultName, options = {}) {
+  const maxPosts = Math.max(1, Math.min(Number(options.maxPosts || 30), 100));
+  const chunks = html.split('data-post="').slice(1).slice(0, maxPosts);
+  const out = [];
+
+  for (const chunk of chunks) {
+    const postId = (chunk.split('"')[0] || "").trim(); // e.g. text1024/21785
+    if (!postId.includes('/')) continue;
+
+    const dt = (chunk.match(/datetime="([^"]+)"/) || [])[1] || new Date().toISOString();
+    const textRaw = (chunk.match(/tgme_widget_message_text[^>]*>([\s\S]*?)<\/div>/) || [])[1] || "";
+    const text = stripHtml(textRaw);
+    if (!text || text.length < 20) continue;
+
+    const title = text.slice(0, 40);
+    out.push({
+      title,
+      sourcePlatform: defaultPlatform || "telegram",
+      sourceName: defaultName || postId.split('/')[0],
+      sourceUrl: `https://t.me/s/${postId}`,
+      postedAt: dt.slice(0, 10),
+      description: text.slice(0, 500),
+      contact: extractContact(text),
+      rawText: text
+    });
+  }
+  return out;
+}
+
 function detectSignals(text) {
   return {
     clearScope: pick(text, ["需求", "范围", "交付", "里程碑", "修复", "功能", "接口", "开发", "维护"]),
@@ -150,6 +184,49 @@ async function handleImport(request, env) {
     try {
       const resp = await fetch(src.url, { redirect: "follow" });
       const html = await resp.text();
+
+      // Telegram 渠道：按帖子粒度拆分
+      if ((src.sourcePlatform || '').toLowerCase() === 'telegram' || src.url.includes('t.me/s/')) {
+        const posts = extractTelegramPosts(html, src.sourcePlatform || 'telegram', src.sourceName || 'telegram', {
+          maxPosts: src.maxPosts || 30
+        });
+
+        let inserted = 0;
+        let skipped = 0;
+        for (const p of posts) {
+          const textAll = `${p.title} ${p.rawText}`;
+          const item = {
+            title: p.title,
+            sourcePlatform: p.sourcePlatform,
+            sourceName: p.sourceName,
+            sourceUrl: p.sourceUrl,
+            postedAt: p.postedAt,
+            type: hardRisk(textAll) ? 'high-risk' : (src.type || 'info-content'),
+            skills: src.skills?.length ? src.skills : detectSkills(textAll),
+            budget: src.budget || 'unknown',
+            location: src.location || 'remote',
+            contact: src.contact || p.contact || '',
+            description: p.description,
+            notes: src.notes || 'auto-import:telegram-post',
+            signals: detectSignals(textAll)
+          };
+
+          const execScore = executionFieldsCount(item);
+          if (execScore < 2 && item.type !== 'high-risk') {
+            item.type = 'info-content';
+            item.notes = `${item.notes || ''} | downgraded:low-executable`;
+          }
+
+          const r = await upsertLead(env, item);
+          if (r.inserted) inserted++;
+          if (r.skipped) skipped++;
+        }
+
+        out.push({ url: src.url, mode: 'telegram-posts', parsed: posts.length, inserted, skipped });
+        continue;
+      }
+
+      // 普通网页：整页一条
       const t = stripHtml(html).slice(0, maxChars);
       const title = src.title || titleFromHtml(html);
       const textAll = `${title} ${t}`;
@@ -164,7 +241,7 @@ async function handleImport(request, env) {
         skills: src.skills?.length ? src.skills : detectSkills(textAll),
         budget: src.budget || "unknown",
         location: src.location || "remote",
-        contact: src.contact || "",
+        contact: src.contact || extractContact(t) || "",
         description: t.slice(0, 500),
         notes: src.notes || "auto-import",
         signals: detectSignals(textAll)
@@ -177,7 +254,7 @@ async function handleImport(request, env) {
       }
 
       const r = await upsertLead(env, item);
-      out.push({ url: src.url, ...r, type: item.type, executableFields: execScore });
+      out.push({ url: src.url, ...r, type: item.type, executableFields: execScore, mode: 'single-page' });
     } catch (e) {
       out.push({ url: src.url, error: String(e) });
     }
