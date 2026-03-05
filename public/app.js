@@ -181,7 +181,7 @@ function render() {
 }
 
 async function loadFromApi() {
-  const r = await fetch('/api/items?limit=1000');
+  const r = await fetch(`/api/items?limit=1000&t=${Date.now()}`, { cache: 'no-store' });
   if (!r.ok) throw new Error(`API错误: ${r.status}`);
   const ct = r.headers.get('content-type') || '';
   if (!ct.includes('application/json')) {
@@ -191,22 +191,55 @@ async function loadFromApi() {
   return data.items || [];
 }
 
-async function init() {
-  let items = [];
+function updateLastUpdated() {
+  const d = new Date();
+  byId('lastUpdated').textContent = `最后更新：${d.toLocaleString('zh-CN', { hour12: false })}`;
+}
+
+async function refreshData({ keepPage = true } = {}) {
+  const currentPage = state.page;
+  const btn = byId('refreshNow');
   try {
-    items = await loadFromApi();
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '刷新中...';
+    }
+    const items = await loadFromApi();
+    state.items = items;
+
+    // 每次刷新后重建筛选项
+    byId('platform').innerHTML = '<option value="">全部平台</option>';
+    byId('type').innerHTML = '<option value="">全部类型</option>';
+    byId('skill').innerHTML = '<option value="">全部技能</option>';
+    setOptions('platform', items.map((i) => i.sourcePlatform));
+    setOptions('type', items.map((i) => i.type));
+    setOptions('skill', items.flatMap((i) => i.skills || []));
+
+    if (keepPage) state.page = currentPage;
+    render();
+    updateLastUpdated();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '立即刷新';
+    }
+  }
+}
+
+async function init() {
+  try {
+    await refreshData({ keepPage: false });
   } catch (e) {
     // 开发兜底：避免白屏
     const r2 = await fetch('/data/items.json');
     if (!r2.ok) throw e;
-    items = await r2.json();
+    state.items = await r2.json();
+    setOptions('platform', state.items.map((i) => i.sourcePlatform));
+    setOptions('type', state.items.map((i) => i.type));
+    setOptions('skill', state.items.flatMap((i) => i.skills || []));
+    render();
+    updateLastUpdated();
   }
-
-  state.items = items;
-
-  setOptions('platform', items.map((i) => i.sourcePlatform));
-  setOptions('type', items.map((i) => i.type));
-  setOptions('skill', items.flatMap((i) => i.skills || []));
 
   ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly'].forEach((id) => byId(id).addEventListener('input', () => {
     state.page = 1;
@@ -231,12 +264,15 @@ async function init() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
+  byId('refreshNow').addEventListener('click', () => refreshData({ keepPage: true }));
+  setInterval(() => {
+    refreshData({ keepPage: true }).catch(() => {});
+  }, 60 * 1000);
+
   byId('d-close').addEventListener('click', () => (byId('detailModal').style.display = 'none'));
   byId('detailModal').addEventListener('click', (e) => {
     if (e.target?.id === 'detailModal') byId('detailModal').style.display = 'none';
   });
-
-  render();
 }
 
 init().catch((err) => {

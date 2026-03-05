@@ -91,6 +91,19 @@ input:focus, select:focus {
   margin-bottom: 14px;
 }
 
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
 .kpi {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -215,4 +228,5 @@ button.tag:hover {
   .filters { grid-template-columns: 1fr 1fr; }
   .kpis { grid-template-columns: 1fr 1fr; }
   .pager { flex-wrap: wrap; }
+  .toolbar { flex-wrap: wrap; }
 }
