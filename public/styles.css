@@ -1,18 +1,18 @@
 :root {
-  --bg: #070b16;
-  --bg-2: #0c1328;
-  --panel: rgba(17, 24, 49, 0.78);
-  --panel-solid: #121a33;
-  --text: #eef3ff;
-  --muted: #9aa7cc;
+  --bg: #f5f7fb;
+  --bg-2: #eef3ff;
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-solid: #ffffff;
+  --text: #15203a;
+  --muted: #5f6f95;
   --ok: #20c997;
   --mid: #ffd166;
   --bad: #ff6b6b;
-  --line: rgba(123, 145, 210, 0.26);
-  --line-strong: rgba(140, 168, 248, 0.45);
-  --brand: #7ea6ff;
-  --brand-2: #8d79ff;
-  --shadow: 0 10px 35px rgba(0, 0, 0, .35);
+  --line: rgba(80, 110, 180, 0.2);
+  --line-strong: rgba(80, 120, 210, 0.45);
+  --brand: #3d6ee8;
+  --brand-2: #6c52e2;
+  --shadow: 0 10px 25px rgba(32, 54, 109, .12);
 }
 
 * { box-sizing: border-box; }
@@ -22,8 +22,8 @@ body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Noto Sans CJK SC", "Microsoft Yahei", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(1000px 500px at -10% -10%, rgba(126, 166, 255, .18), transparent 60%),
-    radial-gradient(900px 420px at 110% 0%, rgba(141, 121, 255, .16), transparent 60%),
+    radial-gradient(1000px 500px at -10% -10%, rgba(61, 110, 232, .10), transparent 60%),
+    radial-gradient(900px 420px at 110% 0%, rgba(108, 82, 226, .10), transparent 60%),
     linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 65%);
   min-height: 100vh;
 }
@@ -34,7 +34,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(7, 11, 22, .68);
+  background: rgba(255, 255, 255, .78);
   backdrop-filter: blur(10px);
 }
 
@@ -73,7 +73,7 @@ input, select {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--line);
-  background: #0f1630;
+  background: #ffffff;
   color: var(--text);
   outline: none;
   transition: border-color .15s ease, box-shadow .15s ease;
@@ -144,7 +144,7 @@ input:focus, select:focus {
 .desc {
   font-size: 14px;
   line-height: 1.55;
-  color: #d9e4ff;
+  color: #27385f;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -183,14 +183,14 @@ a:hover { text-decoration: underline; }
 
 #detailModal .tag,
 button.tag {
-  border: 1px solid #3b4d7d;
-  color: #d2dcff;
+  border: 1px solid #7f97d8;
+  color: #2d4ea5;
 }
 
 #detailModal .tag:hover,
 button.tag:hover {
-  border-color: #5977bc;
-  background: rgba(72, 100, 170, .2) !important;
+  border-color: #4f73cf;
+  background: rgba(79, 115, 207, .12) !important;
 }
 
 @media (max-width: 980px) {
