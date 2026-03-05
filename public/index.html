@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideHustle Radar</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>副业信息雷达 · SideHustle Radar</h1>
+      <div class="sub">多平台线索聚合 + 评分筛选（程序员友好）</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="filters">
+      <input id="q" placeholder="搜索关键词（PHP / 自动化 / 公众号 / TG...）" />
+      <select id="platform">
+        <option value="">全部平台</option>
+      </select>
+      <select id="type">
+        <option value="">全部类型</option>
+      </select>
+      <select id="risk">
+        <option value="">全部风险</option>
+        <option value="ok">优先</option>
+        <option value="mid">观察</option>
+        <option value="bad">高风险</option>
+      </select>
+      <select id="skill">
+        <option value="">全部技能</option>
+      </select>
+    </section>
+
+    <section class="kpis">
+      <div class="kpi"><div class="n" id="k-total">0</div><div class="l">线索总数</div></div>
+      <div class="kpi"><div class="n" id="k-ok">0</div><div class="l">可优先跟进</div></div>
+      <div class="kpi"><div class="n" id="k-mid">0</div><div class="l">可观察</div></div>
+      <div class="kpi"><div class="n" id="k-bad">0</div><div class="l">高风险</div></div>
+    </section>
+
+    <section id="list" class="list"></section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

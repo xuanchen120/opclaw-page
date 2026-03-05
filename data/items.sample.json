@@ -1,0 +1,71 @@
+[
+  {
+    "id": "tg-text1024-21785",
+    "title": "副业频道长文（偏认知内容）",
+    "sourcePlatform": "telegram",
+    "sourceName": "text1024",
+    "sourceUrl": "https://t.me/s/text1024/21785",
+    "postedAt": "2026-03-05",
+    "type": "info-content",
+    "skills": ["general"],
+    "budget": "unknown",
+    "location": "remote",
+    "contact": "unknown",
+    "description": "内容以周期理论和自媒体认知为主，缺少明确可执行任务信息。",
+    "signals": {
+      "clearScope": false,
+      "clearBudget": false,
+      "requiresDeposit": false,
+      "asksInvite": false,
+      "asksPrivateKey": false,
+      "mentionsGuaranteeIncome": true
+    },
+    "notes": "偏资讯，不是直接接单线索。"
+  },
+  {
+    "id": "pph-php-booking-demo",
+    "title": "PHP Booking Form + Google Maps 计价修复",
+    "sourcePlatform": "peopleperhour",
+    "sourceName": "PeoplePerHour",
+    "sourceUrl": "https://www.peopleperhour.com/freelance-php-jobs",
+    "postedAt": "2026-03-05",
+    "type": "dev-task",
+    "skills": ["php", "mysql", "google-maps-api", "javascript"],
+    "budget": "USD 280 fixed",
+    "location": "remote",
+    "contact": "platform-inbox",
+    "description": "在现有PHP代码上做表单校验、路线计价、后台审批流，不是重构项目。",
+    "signals": {
+      "clearScope": true,
+      "clearBudget": true,
+      "requiresDeposit": false,
+      "asksInvite": false,
+      "asksPrivateKey": false,
+      "mentionsGuaranteeIncome": false
+    },
+    "notes": "与你技术栈高度匹配，可投。"
+  },
+  {
+    "id": "tg-spam-casino",
+    "title": "博彩广告推广",
+    "sourcePlatform": "telegram",
+    "sourceName": "text1024",
+    "sourceUrl": "https://t.me/s/text1024/21780",
+    "postedAt": "2026-03-05",
+    "type": "high-risk",
+    "skills": ["none"],
+    "budget": "unknown",
+    "location": "unknown",
+    "contact": "unknown",
+    "description": "含博彩推广文案，风险高且可能涉及违规。",
+    "signals": {
+      "clearScope": false,
+      "clearBudget": false,
+      "requiresDeposit": false,
+      "asksInvite": true,
+      "asksPrivateKey": false,
+      "mentionsGuaranteeIncome": true
+    },
+    "notes": "直接拉黑。"
+  }
+]
