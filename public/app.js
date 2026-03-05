@@ -51,6 +51,31 @@ function execFieldCount(it) {
   return n;
 }
 
+function openDetail(it) {
+  byId('d-title').textContent = it.title || '(无标题)';
+  byId('d-meta').textContent = `${it.sourcePlatform || 'unknown'} · ${it.sourceName || 'unknown'} · ${it.postedAt || ''}`;
+  byId('d-tags').innerHTML = `${(it.skills || []).map((x) => `<span class="tag">${x}</span>`).join('')}
+    ${it.budget ? `<span class="tag">预算: ${it.budget}</span>` : ''}
+    ${it.type ? `<span class="tag">类型: ${it.type}</span>` : ''}`;
+  byId('d-desc').textContent = it.description || '';
+  byId('d-notes').textContent = it.notes ? `备注：${it.notes}` : '';
+  byId('d-link').href = it.sourceUrl || '#';
+
+  const copyBtn = byId('d-copy');
+  copyBtn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(it.sourceUrl || '');
+      copyBtn.textContent = '已复制';
+      setTimeout(() => (copyBtn.textContent = '复制链接'), 1200);
+    } catch (_) {
+      copyBtn.textContent = '复制失败';
+      setTimeout(() => (copyBtn.textContent = '复制链接'), 1200);
+    }
+  };
+
+  byId('detailModal').style.display = 'block';
+}
+
 function render() {
   const q = byId("q").value.trim().toLowerCase();
   const p = byId("platform").value;
@@ -89,7 +114,7 @@ function render() {
       <article class="card">
         <div class="row">
           <div>
-            <div class="title">${it.sourceUrl ? `<a href="${it.sourceUrl}" target="_blank" rel="noreferrer">${it.title || "(无标题)"}</a>` : (it.title || "(无标题)")}</div>
+            <div class="title">${it.sourceUrl ? `<a href="#" data-action="detail" data-id="${it.id}">${it.title || "(无标题)"}</a>` : (it.title || "(无标题)")}</div>
             <div class="meta">${it.sourcePlatform || "unknown"} · ${it.sourceName || "unknown"} · ${it.postedAt || ""}</div>
           </div>
           <div>${badge(s)}</div>
@@ -114,6 +139,15 @@ function render() {
       </article>
     `;
   }).join("") || `<div class="card">没有匹配结果</div>`;
+
+  byId('list').querySelectorAll('a[data-action="detail"]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const id = a.getAttribute('data-id');
+      const it = state.items.find(x => x.id === id);
+      if (it) openDetail(it);
+    });
+  });
 
   byId('list').querySelectorAll('button[data-action="open"]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -166,6 +200,12 @@ async function init() {
   setOptions('skill', items.flatMap((i) => i.skills || []));
 
   ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly'].forEach((id) => byId(id).addEventListener('input', render));
+
+  byId('d-close').addEventListener('click', () => (byId('detailModal').style.display = 'none'));
+  byId('detailModal').addEventListener('click', (e) => {
+    if (e.target?.id === 'detailModal') byId('detailModal').style.display = 'none';
+  });
+
   render();
 }
 

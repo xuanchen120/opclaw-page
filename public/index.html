@@ -48,6 +48,23 @@
     <section id="list" class="list"></section>
   </main>
 
+  <div id="detailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;">
+    <div style="max-width:820px;margin:40px auto;background:#111831;border:1px solid #273252;border-radius:12px;padding:14px;color:#e9eefc;max-height:85vh;overflow:auto;">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+        <h3 id="d-title" style="margin:0;font-size:18px;"></h3>
+        <button id="d-close" class="tag" style="cursor:pointer;background:transparent;">关闭</button>
+      </div>
+      <div id="d-meta" class="meta" style="margin-top:8px;"></div>
+      <div id="d-tags" class="tags" style="margin-top:8px;"></div>
+      <pre id="d-desc" style="white-space:pre-wrap;line-height:1.55;background:#0f1630;border:1px solid #273252;border-radius:10px;padding:10px;margin-top:10px;"></pre>
+      <div id="d-notes" class="meta" style="margin-top:8px;"></div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <a id="d-link" target="_blank" rel="noreferrer" class="tag">打开原链接</a>
+        <button id="d-copy" class="tag" style="cursor:pointer;background:transparent;">复制链接</button>
+      </div>
+    </div>
+  </div>
+
   <script src="./app.js"></script>
 </body>
 </html>
