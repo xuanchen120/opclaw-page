@@ -1,4 +1,4 @@
-const state = { items: [], filtered: [] };
+const state = { items: [], filtered: [], page: 1, pageSize: 20 };
 
 const riskKeywords = [
   "刷单", "博彩", "代实名", "跑分", "拉人头", "保底收益", "稳赚", "保证金", "邀请码", "私钥", "验证码"
@@ -108,7 +108,16 @@ function render() {
   byId("k-mid").textContent = mid;
   byId("k-bad").textContent = bad;
 
-  byId("list").innerHTML = arr.map((it) => {
+  const totalPages = Math.max(1, Math.ceil(arr.length / state.pageSize));
+  if (state.page > totalPages) state.page = totalPages;
+  const start = (state.page - 1) * state.pageSize;
+  const pageArr = arr.slice(start, start + state.pageSize);
+
+  byId('pageInfo').textContent = `第 ${state.page} / ${totalPages} 页`;
+  byId('prevPage').disabled = state.page <= 1;
+  byId('nextPage').disabled = state.page >= totalPages;
+
+  byId("list").innerHTML = pageArr.map((it) => {
     const s = calcScore(it);
     return `
       <article class="card">
@@ -199,7 +208,28 @@ async function init() {
   setOptions('type', items.map((i) => i.type));
   setOptions('skill', items.flatMap((i) => i.skills || []));
 
-  ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly'].forEach((id) => byId(id).addEventListener('input', render));
+  ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly'].forEach((id) => byId(id).addEventListener('input', () => {
+    state.page = 1;
+    render();
+  }));
+
+  byId('pageSize').addEventListener('input', () => {
+    state.pageSize = Number(byId('pageSize').value || 20);
+    state.page = 1;
+    render();
+  });
+  byId('prevPage').addEventListener('click', () => {
+    if (state.page > 1) {
+      state.page -= 1;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+  byId('nextPage').addEventListener('click', () => {
+    state.page += 1;
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 
   byId('d-close').addEventListener('click', () => (byId('detailModal').style.display = 'none'));
   byId('detailModal').addEventListener('click', (e) => {

@@ -46,6 +46,18 @@
     </section>
 
     <section id="list" class="list"></section>
+
+    <section id="pager" class="pager">
+      <button id="prevPage" class="tag" style="cursor:pointer;background:transparent;">上一页</button>
+      <span id="pageInfo" class="meta" style="margin:0;">第 1 / 1 页</span>
+      <button id="nextPage" class="tag" style="cursor:pointer;background:transparent;">下一页</button>
+      <span class="meta" style="margin:0 0 0 8px;">每页</span>
+      <select id="pageSize" style="width:auto;min-width:90px;">
+        <option value="10">10</option>
+        <option value="20" selected>20</option>
+        <option value="50">50</option>
+      </select>
+    </section>
   </main>
 
   <div id="detailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;">
