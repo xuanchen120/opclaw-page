@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://t.me/s/text1024",
+    "sourcePlatform": "telegram",
+    "sourceName": "text1024",
+    "tier": "secondary"
+  },
+  {
+    "url": "https://t.me/s/https1024",
+    "sourcePlatform": "telegram",
+    "sourceName": "https1024",
+    "tier": "secondary"
+  }
+]

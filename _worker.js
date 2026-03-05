@@ -1,3 +1,5 @@
+const HARD_BLOCK_KEYWORDS = ["博彩", "赌场", "跑分", "代实名"];
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -40,6 +42,10 @@ function detectSignals(text) {
   };
 }
 
+function hardRisk(text) {
+  return pick(text, HARD_BLOCK_KEYWORDS);
+}
+
 function executionFieldsCount(item) {
   let n = 0;
   if (item.signals?.clearBudget) n++;
@@ -49,14 +55,50 @@ function executionFieldsCount(item) {
   return n;
 }
 
-function hardRisk(text) {
-  return pick(text, ["博彩", "赌场", "跑分", "代实名"]);
+function isHardBlocked(item) {
+  const text = `${item.title || ""} ${item.description || ""} ${item.notes || ""}`;
+  if (item.type === "high-risk") return true;
+  return HARD_BLOCK_KEYWORDS.some((k) => text.includes(k));
+}
+
+function rowToItem(r) {
+  return {
+    id: r.id,
+    title: r.title,
+    sourcePlatform: r.source_platform,
+    sourceName: r.source_name,
+    sourceUrl: r.source_url,
+    postedAt: r.posted_at,
+    type: r.type,
+    skills: JSON.parse(r.skills_json || "[]"),
+    budget: r.budget,
+    location: r.location,
+    contact: r.contact,
+    description: r.description,
+    notes: r.notes,
+    signals: {
+      clearScope: !!r.clear_scope,
+      clearBudget: !!r.clear_budget,
+      requiresDeposit: !!r.requires_deposit,
+      asksInvite: !!r.asks_invite,
+      asksPrivateKey: !!r.asks_private_key,
+      mentionsGuaranteeIncome: !!r.mentions_guarantee_income
+    },
+    createdAt: r.created_at
+  };
+}
+
+async function handleItems(request, env) {
+  if (!env.DB) return json({ error: "D1 not configured" }, 500);
+  const u = new URL(request.url);
+  const limit = Math.min(parseInt(u.searchParams.get("limit") || "200", 10), 1000);
+  const rs = await env.DB.prepare(`SELECT * FROM leads ORDER BY posted_at DESC, created_at DESC LIMIT ?`).bind(limit).all();
+  const items = (rs.results || []).map(rowToItem).filter((x) => !isHardBlocked(x));
+  return json({ items, total: items.length });
 }
 
 async function upsertLead(env, item) {
-  const existing = await env.DB.prepare(`SELECT id FROM leads WHERE source_url = ? LIMIT 1`)
-    .bind(item.sourceUrl)
-    .first();
+  const existing = await env.DB.prepare(`SELECT id FROM leads WHERE source_url = ? LIMIT 1`).bind(item.sourceUrl).first();
   if (existing?.id) return { skipped: true, id: existing.id };
 
   const id = crypto.randomUUID();
@@ -88,15 +130,16 @@ async function upsertLead(env, item) {
     s.asksPrivateKey ? 1 : 0,
     s.mentionsGuaranteeIncome ? 1 : 0
   ).run();
-
   return { inserted: true, id };
 }
 
-export async function onRequestPost({ request, env }) {
+async function handleImport(request, env) {
   if (!env.DB) return json({ error: "D1 not configured" }, 500);
 
   const token = request.headers.get("x-admin-token") || "";
-  if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) return json({ error: "unauthorized" }, 401);
+  if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
+    return json({ error: "unauthorized" }, 401);
+  }
 
   const body = await request.json();
   const sources = Array.isArray(body.sources) ? body.sources : [];
@@ -143,8 +186,24 @@ export async function onRequestPost({ request, env }) {
   return json({ ok: true, results: out });
 }
 
-export async function onRequestGet() {
-  return json({
-    hint: "POST /api/import with x-admin-token and body { sources:[{url, sourcePlatform, sourceName}] }"
-  });
-}
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/api/items" && request.method === "GET") {
+      return handleItems(request, env);
+    }
+
+    if (url.pathname === "/api/import" && request.method === "POST") {
+      return handleImport(request, env);
+    }
+
+    if (url.pathname === "/api/import" && request.method === "GET") {
+      return json({
+        hint: "POST /api/import with x-admin-token and body { sources:[{url, sourcePlatform, sourceName}] }"
+      });
+    }
+
+    return env.ASSETS.fetch(request);
+  }
+};
