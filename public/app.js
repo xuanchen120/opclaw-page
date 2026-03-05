@@ -1,4 +1,4 @@
-const state = { items: [], filtered: [], page: 1, pageSize: 20 };
+const state = { items: [], filtered: [], page: 1, pageSize: 20, readMap: {}, nowMs: Date.now() };
 
 const riskKeywords = [
   "刷单", "博彩", "代实名", "跑分", "拉人头", "保底收益", "稳赚", "保证金", "邀请码", "私钥", "验证码"
@@ -51,7 +51,24 @@ function execFieldCount(it) {
   return n;
 }
 
+function isUnread(it) {
+  return !state.readMap[it.id];
+}
+
+function isNewLead(it) {
+  const t = Date.parse((it.createdAt || it.postedAt || '') + '');
+  if (!Number.isFinite(t)) return false;
+  return (state.nowMs - t) <= (15 * 60 * 1000);
+}
+
+function markRead(id) {
+  if (!id) return;
+  state.readMap[id] = 1;
+  localStorage.setItem('readMap', JSON.stringify(state.readMap));
+}
+
 function openDetail(it) {
+  markRead(it.id);
   byId('d-title').textContent = it.title || '(无标题)';
   byId('d-meta').textContent = `${it.sourcePlatform || 'unknown'} · ${it.sourceName || 'unknown'} · ${it.postedAt || ''}`;
   byId('d-tags').innerHTML = `${(it.skills || []).map((x) => `<span class="tag">${x}</span>`).join('')}
@@ -83,6 +100,7 @@ function render() {
   const r = byId("risk").value;
   const sk = byId("skill").value;
   const executableOnly = !!byId('executableOnly')?.checked;
+  const unreadOnly = !!byId('unreadOnly')?.checked;
 
   const arr = state.items
     .filter((it) => {
@@ -95,6 +113,7 @@ function render() {
       if (r && b !== r) return false;
       if (sk && !(it.skills || []).includes(sk)) return false;
       if (executableOnly && execFieldCount(it) < 2) return false;
+      if (unreadOnly && !isUnread(it)) return false;
       return true;
     })
     .sort((a, b) => calcScore(b) - calcScore(a));
@@ -124,7 +143,10 @@ function render() {
         <div class="row">
           <div>
             <div class="title">${it.sourceUrl ? `<a href="#" data-action="detail" data-id="${it.id}">${it.title || "(无标题)"}</a>` : (it.title || "(无标题)")}</div>
-            <div class="meta">${it.sourcePlatform || "unknown"} · ${it.sourceName || "unknown"} · ${it.postedAt || ""}</div>
+            <div class="meta">${it.sourcePlatform || "unknown"} · ${it.sourceName || "unknown"} · ${it.postedAt || ""}
+              ${isUnread(it) ? '<span class="tag" style="margin-left:6px;border-color:#f59f00;color:#a56a00;background:#fff4d6;">未读</span>' : ''}
+              ${isNewLead(it) ? '<span class="tag" style="margin-left:6px;border-color:#20c997;color:#0a6b55;background:#dcfff5;">NEW</span>' : ''}
+            </div>
           </div>
           <div>${badge(s)}</div>
         </div>
@@ -196,9 +218,24 @@ function updateLastUpdated() {
   byId('lastUpdated').textContent = `最后更新：${d.toLocaleString('zh-CN', { hour12: false })}`;
 }
 
+async function refreshImportStatus() {
+  try {
+    const r = await fetch(`/api/import-status?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    const x = d.latest;
+    if (!x) {
+      byId('importStatus').textContent = '导入状态：暂无记录';
+      return;
+    }
+    byId('importStatus').textContent = `导入状态：${x.created_at} | +${x.inserted_count} 新增 / ${x.skipped_count} 跳过 / ${x.error_count} 错误`;
+  } catch (_) {}
+}
+
 async function refreshData({ keepPage = true } = {}) {
   const currentPage = state.page;
   const btn = byId('refreshNow');
+  state.nowMs = Date.now();
   try {
     if (btn) {
       btn.disabled = true;
@@ -241,7 +278,9 @@ async function init() {
     updateLastUpdated();
   }
 
-  ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly'].forEach((id) => byId(id).addEventListener('input', () => {
+  state.readMap = JSON.parse(localStorage.getItem('readMap') || '{}');
+
+  ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly', 'unreadOnly'].forEach((id) => byId(id).addEventListener('input', () => {
     state.page = 1;
     render();
   }));
@@ -264,10 +303,23 @@ async function init() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  byId('refreshNow').addEventListener('click', () => refreshData({ keepPage: true }));
+  byId('refreshNow').addEventListener('click', async () => {
+    await refreshData({ keepPage: true });
+    await refreshImportStatus();
+  });
+
+  byId('markAllRead').addEventListener('click', () => {
+    const links = byId('list').querySelectorAll('a[data-action="detail"]');
+    links.forEach((a) => markRead(a.getAttribute('data-id')));
+    render();
+  });
+
   setInterval(() => {
     refreshData({ keepPage: true }).catch(() => {});
+    refreshImportStatus().catch(() => {});
   }, 60 * 1000);
+
+  refreshImportStatus().catch(() => {});
 
   byId('d-close').addEventListener('click', () => (byId('detailModal').style.display = 'none'));
   byId('detailModal').addEventListener('click', (e) => {

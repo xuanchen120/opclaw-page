@@ -128,6 +128,18 @@ function rowToItem(r) {
   };
 }
 
+async function ensureMetaTables(env) {
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS import_runs (
+    id TEXT PRIMARY KEY,
+    source_count INTEGER DEFAULT 0,
+    inserted_count INTEGER DEFAULT 0,
+    skipped_count INTEGER DEFAULT 0,
+    error_count INTEGER DEFAULT 0,
+    summary_json TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`).run();
+}
+
 async function handleItems(request, env) {
   if (!env.DB) return json({ error: "D1 not configured" }, 500);
   const u = new URL(request.url);
@@ -175,6 +187,7 @@ async function upsertLead(env, item) {
 
 async function handleImport(request, env) {
   if (!env.DB) return json({ error: "D1 not configured" }, 500);
+  await ensureMetaTables(env);
 
   const token = request.headers.get("x-admin-token") || "";
   if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
@@ -310,7 +323,17 @@ async function handleImport(request, env) {
     }
   }
 
-  return json({ ok: true, results: out });
+  const insertedCount = out.reduce((n, x) => n + (Number(x.inserted) || 0), 0);
+  const skippedCount = out.reduce((n, x) => n + (Number(x.skipped) || 0), 0);
+  const errorCount = out.filter((x) => !!x.error).length;
+
+  const runId = crypto.randomUUID();
+  await env.DB.prepare(`INSERT INTO import_runs (id, source_count, inserted_count, skipped_count, error_count, summary_json)
+    VALUES (?, ?, ?, ?, ?, ?)`)
+    .bind(runId, out.length, insertedCount, skippedCount, errorCount, JSON.stringify(out))
+    .run();
+
+  return json({ ok: true, runId, results: out, stats: { insertedCount, skippedCount, errorCount } });
 }
 
 export default {
@@ -328,6 +351,18 @@ export default {
     if (url.pathname === "/api/import" && request.method === "GET") {
       return json({
         hint: "POST /api/import with x-admin-token and body { sources:[{url, sourcePlatform, sourceName}] }"
+      });
+    }
+
+    if (url.pathname === "/api/import-status" && request.method === "GET") {
+      if (!env.DB) return json({ error: "D1 not configured" }, 500);
+      await ensureMetaTables(env);
+      const rs = await env.DB.prepare(`SELECT id, source_count, inserted_count, skipped_count, error_count, created_at
+        FROM import_runs ORDER BY created_at DESC LIMIT 20`).all();
+      const rows = rs.results || [];
+      return json({
+        latest: rows[0] || null,
+        runs: rows
       });
     }
 
