@@ -1,92 +1,82 @@
 # SideHustle Radar（副业信息雷达）
 
-给你做的一个本地可用小工具：把各平台（Telegram、公众号、论坛、招聘站）看到的“赚钱项目”统一收集、打标签、评分、筛选。
+现在已升级为：**Cloudflare Pages + Pages Functions + D1**。
 
-## 你能做什么
+- 前端：`public/*`
+- API：`functions/api/items.js`
+- 数据库：Cloudflare D1（表结构 `schema.sql`）
+- 回退机制：若 D1/API 不可用，前端自动回退读取 `data/items.json`
 
-- 统一收录：把项目线索都丢进 `data/items.json`
-- 快速筛选：按平台、项目类型、风险等级、是否程序员可做筛选
-- 可信度评分：按「可验证性、预算清晰度、是否预付、是否拉人头」自动给分
-- 黑名单词拦截：自动标红高风险词（刷单、保证金、博彩、拉人头等）
+## 当前能力
+
+- 多平台线索展示/筛选/评分
+- 默认排除博彩等高风险内容（API 层硬拦截）
+- 支持后续自动写入（POST `/api/items`）
 
 ## 目录
 
-- `public/index.html` 前端页面（纯静态）
-- `public/app.js` 页面逻辑
-- `public/styles.css` 样式
-- `data/items.json` 你的项目数据（可手工维护）
-- `data/items.sample.json` 示例数据
+- `public/index.html` 页面
+- `public/app.js` 筛选逻辑（优先读 `/api/items`）
+- `functions/api/items.js` API（GET/POST）
+- `schema.sql` D1 表结构
+- `data/items.json` 静态回退数据
 
-## 使用
+## 一次性配置（Cloudflare）
 
-1. 先复制示例数据：
+### 1) 创建 D1 数据库
 
-```bash
-cp data/items.sample.json data/items.json
+在 Cloudflare 控制台创建 D1，例如：`sidehustle-radar-db`
+
+### 2) 初始化表结构
+
+在 D1 控制台执行 `schema.sql` 全部 SQL。
+
+### 3) 绑定到 Pages 项目
+
+Pages 项目：`opclaw-page`
+
+- Settings -> Functions -> D1 database bindings
+- 新增绑定：
+  - Variable name: `DB`
+  - D1 database: `sidehustle-radar-db`
+
+### 4) 配置写入令牌（可选，给 POST 用）
+
+Pages 项目 -> Settings -> Environment variables
+
+- `ADMIN_TOKEN` = 你自定义的长随机串
+
+> POST `/api/items` 需要请求头 `x-admin-token: <ADMIN_TOKEN>`
+
+## API
+
+### GET /api/items
+
+返回结构化线索：
+
+```json
+{ "items": [...], "total": 123 }
 ```
 
-2. 本地启动一个静态服务（任选一个）：
+### POST /api/items
+
+- Header: `x-admin-token: <ADMIN_TOKEN>`
+- Body: 与 `items.json` 单条结构一致
+
+## 开发与部署
+
+### 本地静态预览
 
 ```bash
-# Node 方式
 npx serve .
-
-# 或 Python 方式
+# or
 python3 -m http.server 8787
 ```
 
-3. 浏览器打开：
+### 生产部署
 
-- `http://localhost:3000/public/`（用 serve 时）
-- 或 `http://localhost:8787/public/`
+使用 Cloudflare Pages 连接 GitHub 仓库自动部署。
 
-> 页面会自动读取 `../data/items.json`
+## 风险规则（默认）
 
-## 数据格式（items.json）
-
-```json
-[
-  {
-    "id": "tg-001",
-    "title": "Laravel 老系统修复",
-    "sourcePlatform": "telegram",
-    "sourceName": "某副业频道",
-    "sourceUrl": "https://t.me/s/example/123",
-    "postedAt": "2026-03-05",
-    "type": "dev-task",
-    "skills": ["php", "laravel", "mysql"],
-    "budget": "500-1200 CNY",
-    "location": "remote",
-    "contact": "@example",
-    "description": "修复登录与支付回调，2天内交付",
-    "signals": {
-      "clearScope": true,
-      "clearBudget": true,
-      "requiresDeposit": false,
-      "asksInvite": false,
-      "asksPrivateKey": false,
-      "mentionsGuaranteeIncome": false
-    },
-    "notes": "适合下班后做"
-  }
-]
-```
-
-## 风险与评分规则（内置）
-
-- 基础分 60
-- 清晰范围 +15
-- 清晰预算 +10
-- 要求保证金 -35
-- 拉人头/邀请码 -25
-- 索要私钥/验证码/账号 -50
-- 承诺保底收益 -30
-
-评级：
-- `>= 80`：可优先跟进
-- `60 ~ 79`：可观察
-- `< 60`：高风险，建议跳过
-
-## 你接下来怎么用
-
-你继续发我链接（TG/公众号文章/论坛帖子），我帮你提炼成结构化条目，持续加到 `items.json`。这个站就会越来越好用。
+硬拦截关键词：`博彩 / 赌场 / 跑分 / 代实名`（不会出现在可做项目列表）。
