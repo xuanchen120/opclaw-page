@@ -102,11 +102,28 @@ function render() {
   }).join("") || `<div class="card">没有匹配结果</div>`;
 }
 
-async function init() {
+async function loadFromApi() {
   const r = await fetch('/api/items?limit=500');
   if (!r.ok) throw new Error(`API错误: ${r.status}`);
+  const ct = r.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    throw new Error('API未返回JSON（当前可能仍在静态部署模式）');
+  }
   const data = await r.json();
-  const items = data.items || [];
+  return data.items || [];
+}
+
+async function init() {
+  let items = [];
+  try {
+    items = await loadFromApi();
+  } catch (e) {
+    // 开发兜底：避免白屏
+    const r2 = await fetch('/data/items.json');
+    if (!r2.ok) throw e;
+    items = await r2.json();
+  }
+
   state.items = items;
 
   setOptions('platform', items.map((i) => i.sourcePlatform));
