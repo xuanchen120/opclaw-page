@@ -4,13 +4,15 @@
     "sourcePlatform": "telegram",
     "sourceName": "text1024",
     "tier": "secondary",
-    "maxPosts": 25
+    "maxPosts": 80,
+    "deepFetch": true
   },
   {
     "url": "https://t.me/s/https1024",
     "sourcePlatform": "telegram",
     "sourceName": "https1024",
     "tier": "secondary",
-    "maxPosts": 25
+    "maxPosts": 80,
+    "deepFetch": true
   }
 ]

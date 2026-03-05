@@ -115,7 +115,7 @@ function render() {
 }
 
 async function loadFromApi() {
-  const r = await fetch('/api/items?limit=500');
+  const r = await fetch('/api/items?limit=1000');
   if (!r.ok) throw new Error(`API错误: ${r.status}`);
   const ct = r.headers.get('content-type') || '';
   if (!ct.includes('application/json')) {

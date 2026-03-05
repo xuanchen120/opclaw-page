@@ -17,7 +17,8 @@ const body = {
     sourcePlatform: s.sourcePlatform,
     sourceName: s.sourceName,
     notes: `tier:${s.tier || 'secondary'}`,
-    maxPosts: s.maxPosts || 25
+    maxPosts: s.maxPosts || 80,
+    deepFetch: s.deepFetch !== false
   }))
 };
 

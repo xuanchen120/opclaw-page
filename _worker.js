@@ -37,13 +37,19 @@ function extractContact(text) {
 }
 
 function extractTelegramPosts(html, defaultPlatform, defaultName, options = {}) {
-  const maxPosts = Math.max(1, Math.min(Number(options.maxPosts || 30), 100));
+  const maxPosts = Math.max(1, Math.min(Number(options.maxPosts || 30), 200));
   const chunks = html.split('data-post="').slice(1).slice(0, maxPosts);
   const out = [];
+  let minPostNum = null;
 
   for (const chunk of chunks) {
     const postId = (chunk.split('"')[0] || "").trim(); // e.g. text1024/21785
     if (!postId.includes('/')) continue;
+    const [channel, numStr] = postId.split('/');
+    const postNum = Number(numStr);
+    if (!Number.isNaN(postNum)) {
+      if (minPostNum === null || postNum < minPostNum) minPostNum = postNum;
+    }
 
     const dt = (chunk.match(/datetime="([^"]+)"/) || [])[1] || new Date().toISOString();
     const textRaw = (chunk.match(/tgme_widget_message_text[^>]*>([\s\S]*?)<\/div>/) || [])[1] || "";
@@ -54,7 +60,7 @@ function extractTelegramPosts(html, defaultPlatform, defaultName, options = {}) 
     out.push({
       title,
       sourcePlatform: defaultPlatform || "telegram",
-      sourceName: defaultName || postId.split('/')[0],
+      sourceName: defaultName || channel,
       sourceUrl: `https://t.me/s/${postId}`,
       postedAt: dt.slice(0, 10),
       description: text.slice(0, 500),
@@ -62,7 +68,7 @@ function extractTelegramPosts(html, defaultPlatform, defaultName, options = {}) 
       rawText: text
     });
   }
-  return out;
+  return { posts: out, minPostNum };
 }
 
 function detectSignals(text) {
@@ -187,8 +193,8 @@ async function handleImport(request, env) {
 
       // Telegram 渠道：按帖子粒度拆分
       if ((src.sourcePlatform || '').toLowerCase() === 'telegram' || src.url.includes('t.me/s/')) {
-        const posts = extractTelegramPosts(html, src.sourcePlatform || 'telegram', src.sourceName || 'telegram', {
-          maxPosts: src.maxPosts || 30
+        const { posts, minPostNum } = extractTelegramPosts(html, src.sourcePlatform || 'telegram', src.sourceName || 'telegram', {
+          maxPosts: src.maxPosts || 80
         });
 
         let inserted = 0;
@@ -222,7 +228,51 @@ async function handleImport(request, env) {
           if (r.skipped) skipped++;
         }
 
-        out.push({ url: src.url, mode: 'telegram-posts', parsed: posts.length, inserted, skipped });
+        // 向前翻页继续抓更早消息（最多5页）
+        let page = 0;
+        let cursor = minPostNum;
+        while (page < 5 && cursor && (src.deepFetch !== false)) {
+          const olderUrl = `${src.url}?before=${cursor}`;
+          const r2 = await fetch(olderUrl, { redirect: 'follow' });
+          const h2 = await r2.text();
+          const older = extractTelegramPosts(h2, src.sourcePlatform || 'telegram', src.sourceName || 'telegram', {
+            maxPosts: src.maxPosts || 80
+          });
+          if (!older.posts.length) break;
+
+          for (const p of older.posts) {
+            const textAll = `${p.title} ${p.rawText}`;
+            const item = {
+              title: p.title,
+              sourcePlatform: p.sourcePlatform,
+              sourceName: p.sourceName,
+              sourceUrl: p.sourceUrl,
+              postedAt: p.postedAt,
+              type: hardRisk(textAll) ? 'high-risk' : (src.type || 'info-content'),
+              skills: src.skills?.length ? src.skills : detectSkills(textAll),
+              budget: src.budget || 'unknown',
+              location: src.location || 'remote',
+              contact: src.contact || p.contact || '',
+              description: p.description,
+              notes: src.notes || 'auto-import:telegram-post',
+              signals: detectSignals(textAll)
+            };
+            const execScore = executionFieldsCount(item);
+            if (execScore < 2 && item.type !== 'high-risk') {
+              item.type = 'info-content';
+              item.notes = `${item.notes || ''} | downgraded:low-executable`;
+            }
+            const r = await upsertLead(env, item);
+            if (r.inserted) inserted++;
+            if (r.skipped) skipped++;
+          }
+
+          if (!older.minPostNum || older.minPostNum >= cursor) break;
+          cursor = older.minPostNum;
+          page++;
+        }
+
+        out.push({ url: src.url, mode: 'telegram-posts', parsed: posts.length, inserted, skipped, pages: page + 1 });
         continue;
       }
 
