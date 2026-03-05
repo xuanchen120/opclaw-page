@@ -89,7 +89,7 @@ function render() {
       <article class="card">
         <div class="row">
           <div>
-            <div class="title">${it.title || "(无标题)"}</div>
+            <div class="title">${it.sourceUrl ? `<a href="${it.sourceUrl}" target="_blank" rel="noreferrer">${it.title || "(无标题)"}</a>` : (it.title || "(无标题)")}</div>
             <div class="meta">${it.sourcePlatform || "unknown"} · ${it.sourceName || "unknown"} · ${it.postedAt || ""}</div>
           </div>
           <div>${badge(s)}</div>
@@ -103,15 +103,38 @@ function render() {
           ${it.type ? `<span class="tag">类型: ${it.type}</span>` : ""}
         </div>
 
-        <div class="meta" style="margin-top:8px;">
-          ${it.contact ? `联系: ${it.contact} · ` : ""}
+        <div class="meta" style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          ${it.contact ? `<span>联系: ${it.contact}</span>` : ""}
           ${it.sourceUrl ? `<a href="${it.sourceUrl}" target="_blank" rel="noreferrer">原链接</a>` : ""}
+          ${it.sourceUrl ? `<button class="tag" data-action="open" data-url="${it.sourceUrl}" style="cursor:pointer;background:transparent;">打开</button>` : ""}
+          ${it.sourceUrl ? `<button class="tag" data-action="copy" data-url="${it.sourceUrl}" style="cursor:pointer;background:transparent;">复制链接</button>` : ""}
         </div>
 
         ${it.notes ? `<div class="meta">备注：${it.notes}</div>` : ""}
       </article>
     `;
   }).join("") || `<div class="card">没有匹配结果</div>`;
+
+  byId('list').querySelectorAll('button[data-action="open"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    });
+  });
+
+  byId('list').querySelectorAll('button[data-action="copy"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const url = btn.getAttribute('data-url') || '';
+      try {
+        await navigator.clipboard.writeText(url);
+        btn.textContent = '已复制';
+        setTimeout(() => (btn.textContent = '复制链接'), 1200);
+      } catch (_) {
+        btn.textContent = '复制失败';
+        setTimeout(() => (btn.textContent = '复制链接'), 1200);
+      }
+    });
+  });
 }
 
 async function loadFromApi() {
