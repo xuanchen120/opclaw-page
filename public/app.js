@@ -34,6 +34,10 @@ function badge(score) {
 }
 
 function byId(id) { return document.getElementById(id); }
+function on(id, event, handler) {
+  const el = byId(id);
+  if (el) el.addEventListener(event, handler);
+}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -325,18 +329,18 @@ async function init() {
     updateLastUpdated();
   }
 
-  ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly', 'unreadOnly'].forEach((id) => byId(id).addEventListener('input', () => {
+  ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly', 'unreadOnly'].forEach((id) => on(id, 'input', () => {
     state.page = 1;
     render();
   }));
 
-  byId('pageSize').addEventListener('input', () => {
-    state.pageSize = Number(byId('pageSize').value || 20);
+  on('pageSize', 'input', () => {
+    state.pageSize = Number(byId('pageSize')?.value || 20);
     state.page = 1;
     render();
   });
 
-  byId('prevPage').addEventListener('click', () => {
+  on('prevPage', 'click', () => {
     if (state.page > 1) {
       state.page -= 1;
       render();
@@ -344,7 +348,7 @@ async function init() {
     }
   });
 
-  byId('nextPage').addEventListener('click', () => {
+  on('nextPage', 'click', () => {
     if (state.page < Math.max(1, Math.ceil(state.filtered.length / state.pageSize))) {
       state.page += 1;
       render();
@@ -352,12 +356,12 @@ async function init() {
     }
   });
 
-  byId('refreshNow').addEventListener('click', async () => {
+  on('refreshNow', 'click', async () => {
     await refreshData({ keepPage: true });
     await refreshImportStatus();
   });
 
-  byId('opportunityPreset').addEventListener('click', () => {
+  on('opportunityPreset', 'click', () => {
     byId('q').value = 'category:opportunity freelance remote jobs hiring contract project part-time';
     byId('executableOnly').checked = false;
     byId('unreadOnly').checked = false;
@@ -365,7 +369,7 @@ async function init() {
     render();
   });
 
-  byId('inspirationPreset').addEventListener('click', () => {
+  on('inspirationPreset', 'click', () => {
     byId('q').value = 'category:inspiration';
     byId('executableOnly').checked = false;
     byId('unreadOnly').checked = false;
@@ -373,7 +377,7 @@ async function init() {
     render();
   });
 
-  byId('savingsPreset').addEventListener('click', () => {
+  on('savingsPreset', 'click', () => {
     byId('q').value = 'category:savings freebies coupon deals rebate free';
     byId('executableOnly').checked = false;
     byId('unreadOnly').checked = false;
@@ -381,7 +385,7 @@ async function init() {
     render();
   });
 
-  byId('devPreset').addEventListener('click', () => {
+  on('devPreset', 'click', () => {
     byId('q').value = `category:opportunity ${devKeywords.join(' ')}`;
     byId('executableOnly').checked = true;
     byId('unreadOnly').checked = false;
@@ -389,7 +393,7 @@ async function init() {
     render();
   });
 
-  byId('clearPreset').addEventListener('click', () => {
+  on('clearPreset', 'click', () => {
     byId('q').value = '';
     byId('platform').value = '';
     byId('type').value = '';
@@ -401,7 +405,7 @@ async function init() {
     render();
   });
 
-  byId('markAllRead').addEventListener('click', () => {
+  on('markAllRead', 'click', () => {
     const start = (state.page - 1) * state.pageSize;
     const pageArr = state.filtered.slice(start, start + state.pageSize);
     pageArr.forEach((item) => markRead(item.id));
@@ -415,8 +419,11 @@ async function init() {
 
   refreshImportStatus().catch(() => {});
 
-  byId('d-close').addEventListener('click', () => (byId('detailModal').style.display = 'none'));
-  byId('detailModal').addEventListener('click', (e) => {
+  on('d-close', 'click', () => {
+    const modal = byId('detailModal');
+    if (modal) modal.style.display = 'none';
+  });
+  on('detailModal', 'click', (e) => {
     if (e.target?.id === 'detailModal') byId('detailModal').style.display = 'none';
   });
 }
