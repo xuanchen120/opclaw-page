@@ -1,4 +1,5 @@
 const state = { items: [], filtered: [], page: 1, pageSize: 20, readMap: {}, nowMs: Date.now() };
+const devKeywords = ['php', 'go', 'golang', 'laravel', 'wordpress', 'mysql', 'api', '接口', '自动化', '脚本', '爬虫', '运维', '部署', '修复', '二开', '开发', '维护'];
 
 const riskKeywords = [
   "刷单", "博彩", "代实名", "跑分", "拉人头", "保底收益", "稳赚", "保证金", "邀请码", "私钥", "验证码"
@@ -354,6 +355,26 @@ async function init() {
   byId('refreshNow').addEventListener('click', async () => {
     await refreshData({ keepPage: true });
     await refreshImportStatus();
+  });
+
+  byId('devPreset').addEventListener('click', () => {
+    byId('q').value = devKeywords.join(' ');
+    byId('executableOnly').checked = true;
+    byId('unreadOnly').checked = false;
+    state.page = 1;
+    render();
+  });
+
+  byId('clearPreset').addEventListener('click', () => {
+    byId('q').value = '';
+    byId('platform').value = '';
+    byId('type').value = '';
+    byId('risk').value = '';
+    byId('skill').value = '';
+    byId('executableOnly').checked = false;
+    byId('unreadOnly').checked = false;
+    state.page = 1;
+    render();
   });
 
   byId('markAllRead').addEventListener('click', () => {

@@ -1,4 +1,6 @@
 const HARD_BLOCK_KEYWORDS = ["博彩", "赌场", "跑分", "代实名"];
+const SOFT_BLOCK_KEYWORDS = ["mbti", "吃瓜", "抽奖", "表情包", "资源站", "网盘", "福利视频", "黄油", "瓜群", "看片", "短剧", "小说", "测试题"];
+const DEV_POSITIVE_KEYWORDS = ["php", "go", "golang", "laravel", "wordpress", "mysql", "api", "接口", "自动化", "脚本", "爬虫", "运维", "部署", "修复", "二开", "开发", "维护"];
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -31,9 +33,22 @@ function detectSkills(text) {
   return map.filter((x) => t.includes(x));
 }
 
-function extractContact(text) {
+function extractContact(text, sourceName = "") {
   const m = text.match(/@([a-zA-Z0-9_]{4,})/);
-  return m ? `@${m[1]}` : "";
+  if (!m) return "";
+  const found = `@${m[1]}`;
+  if (sourceName && found.toLowerCase() === `@${String(sourceName).toLowerCase()}`) return "";
+  return found;
+}
+
+function isSoftBlocked(text = "") {
+  const t = String(text).toLowerCase();
+  return SOFT_BLOCK_KEYWORDS.some((k) => t.includes(k));
+}
+
+function hasDevIntent(text = "") {
+  const t = String(text).toLowerCase();
+  return DEV_POSITIVE_KEYWORDS.some((k) => t.includes(k));
 }
 
 function extractTelegramPosts(html, defaultPlatform, defaultName, options = {}) {
@@ -64,7 +79,7 @@ function extractTelegramPosts(html, defaultPlatform, defaultName, options = {}) 
       sourceUrl: `https://t.me/s/${postId}`,
       postedAt: dt.slice(0, 10),
       description: text.slice(0, 500),
-      contact: extractContact(text),
+      contact: extractContact(text, defaultName || channel),
       rawText: text
     });
   }
@@ -99,6 +114,11 @@ function isHardBlocked(item) {
   const text = `${item.title || ""} ${item.description || ""} ${item.notes || ""}`;
   if (item.type === "high-risk") return true;
   return HARD_BLOCK_KEYWORDS.some((k) => text.includes(k));
+}
+
+function isLowValueNoise(item) {
+  const text = `${item.title || ""} ${item.description || ""} ${item.notes || ""}`;
+  return isSoftBlocked(text) && !hasDevIntent(text);
 }
 
 function rowToItem(r) {
@@ -145,7 +165,10 @@ async function handleItems(request, env) {
   const u = new URL(request.url);
   const limit = Math.min(parseInt(u.searchParams.get("limit") || "200", 10), 1000);
   const rs = await env.DB.prepare(`SELECT * FROM leads ORDER BY posted_at DESC, created_at DESC LIMIT ?`).bind(limit).all();
-  const items = (rs.results || []).map(rowToItem).filter((x) => !isHardBlocked(x));
+  const items = (rs.results || [])
+    .map(rowToItem)
+    .filter((x) => !isHardBlocked(x))
+    .filter((x) => !isLowValueNoise(x));
   return json({ items, total: items.length });
 }
 
@@ -214,6 +237,10 @@ async function handleImport(request, env) {
         let skipped = 0;
         for (const p of posts) {
           const textAll = `${p.title} ${p.rawText}`;
+          if (isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
+            skipped++;
+            continue;
+          }
           const item = {
             title: p.title,
             sourcePlatform: p.sourcePlatform,
@@ -255,6 +282,10 @@ async function handleImport(request, env) {
 
           for (const p of older.posts) {
             const textAll = `${p.title} ${p.rawText}`;
+            if (isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
+              skipped++;
+              continue;
+            }
             const item = {
               title: p.title,
               sourcePlatform: p.sourcePlatform,
@@ -294,6 +325,11 @@ async function handleImport(request, env) {
       const title = src.title || titleFromHtml(html);
       const textAll = `${title} ${t}`;
 
+      if (isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
+        out.push({ url: src.url, skipped: true, reason: 'soft-blocked-noise', mode: 'single-page' });
+        continue;
+      }
+
       const item = {
         title,
         sourcePlatform: src.sourcePlatform || "web",
@@ -304,7 +340,7 @@ async function handleImport(request, env) {
         skills: src.skills?.length ? src.skills : detectSkills(textAll),
         budget: src.budget || "unknown",
         location: src.location || "remote",
-        contact: src.contact || extractContact(t) || "",
+        contact: src.contact || extractContact(t, src.sourceName || "") || "",
         description: t.slice(0, 500),
         notes: src.notes || "auto-import",
         signals: detectSignals(textAll)
