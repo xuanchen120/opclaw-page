@@ -34,11 +34,22 @@ function badge(score) {
 
 function byId(id) { return document.getElementById(id); }
 
-function setOptions(id, values) {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function setOptions(id, values, selectedValue = "") {
   const sel = byId(id);
-  const first = sel.innerHTML;
   const uniq = [...new Set(values.filter(Boolean))].sort();
-  sel.innerHTML = first + uniq.map((v) => `<option value="${v}">${v}</option>`).join("");
+  sel.innerHTML = `<option value="">${sel.dataset.placeholder || '全部'}</option>` + uniq.map((v) => {
+    const selected = v === selectedValue ? ' selected' : '';
+    return `<option value="${escapeHtml(v)}"${selected}>${escapeHtml(v)}</option>`;
+  }).join("");
 }
 
 function execFieldCount(it) {
@@ -56,7 +67,8 @@ function isUnread(it) {
 }
 
 function isNewLead(it) {
-  const t = Date.parse((it.createdAt || it.postedAt || '') + '');
+  if (!it.createdAt) return false;
+  const t = Date.parse(it.createdAt);
   if (!Number.isFinite(t)) return false;
   return (state.nowMs - t) <= (15 * 60 * 1000);
 }
@@ -67,13 +79,49 @@ function markRead(id) {
   localStorage.setItem('readMap', JSON.stringify(state.readMap));
 }
 
+function currentFilters() {
+  return {
+    q: byId('q').value,
+    platform: byId('platform').value,
+    type: byId('type').value,
+    risk: byId('risk').value,
+    skill: byId('skill').value,
+    executableOnly: !!byId('executableOnly')?.checked,
+    unreadOnly: !!byId('unreadOnly')?.checked,
+    pageSize: Number(byId('pageSize')?.value || state.pageSize || 20)
+  };
+}
+
+function restoreFilters(filters = {}) {
+  if (filters.q != null) byId('q').value = filters.q;
+  if (filters.platform != null) byId('platform').value = filters.platform;
+  if (filters.type != null) byId('type').value = filters.type;
+  if (filters.risk != null) byId('risk').value = filters.risk;
+  if (filters.skill != null) byId('skill').value = filters.skill;
+  if (filters.executableOnly != null) byId('executableOnly').checked = !!filters.executableOnly;
+  if (filters.unreadOnly != null) byId('unreadOnly').checked = !!filters.unreadOnly;
+  if (filters.pageSize != null) {
+    state.pageSize = Number(filters.pageSize) || 20;
+    byId('pageSize').value = String(state.pageSize);
+  }
+}
+
+function rebuildFilterOptions(items, preserved = {}) {
+  setOptions('platform', items.map((i) => i.sourcePlatform), preserved.platform || '');
+  setOptions('type', items.map((i) => i.type), preserved.type || '');
+  setOptions('skill', items.flatMap((i) => i.skills || []), preserved.skill || '');
+  if (preserved.platform) byId('platform').value = preserved.platform;
+  if (preserved.type) byId('type').value = preserved.type;
+  if (preserved.skill) byId('skill').value = preserved.skill;
+}
+
 function openDetail(it) {
   markRead(it.id);
   byId('d-title').textContent = it.title || '(无标题)';
   byId('d-meta').textContent = `${it.sourcePlatform || 'unknown'} · ${it.sourceName || 'unknown'} · ${it.postedAt || ''}`;
-  byId('d-tags').innerHTML = `${(it.skills || []).map((x) => `<span class="tag">${x}</span>`).join('')}
-    ${it.budget ? `<span class="tag">预算: ${it.budget}</span>` : ''}
-    ${it.type ? `<span class="tag">类型: ${it.type}</span>` : ''}`;
+  byId('d-tags').innerHTML = `${(it.skills || []).map((x) => `<span class="tag tag-soft">${escapeHtml(x)}</span>`).join('')}
+    ${it.budget ? `<span class="tag tag-soft">预算: ${escapeHtml(it.budget)}</span>` : ''}
+    ${it.type ? `<span class="tag tag-soft">类型: ${escapeHtml(it.type)}</span>` : ''}`;
   byId('d-desc').textContent = it.description || '';
   byId('d-notes').textContent = it.notes ? `备注：${it.notes}` : '';
   byId('d-link').href = it.sourceUrl || '#';
@@ -91,6 +139,7 @@ function openDetail(it) {
   };
 
   byId('detailModal').style.display = 'block';
+  render();
 }
 
 function render() {
@@ -118,6 +167,8 @@ function render() {
     })
     .sort((a, b) => calcScore(b) - calcScore(a));
 
+  state.filtered = arr;
+
   const ok = arr.filter((i) => bucket(calcScore(i)) === "ok").length;
   const mid = arr.filter((i) => bucket(calcScore(i)) === "mid").length;
   const bad = arr.filter((i) => bucket(calcScore(i)) === "bad").length;
@@ -138,35 +189,37 @@ function render() {
 
   byId("list").innerHTML = pageArr.map((it) => {
     const s = calcScore(it);
+    const unreadBadge = isUnread(it) ? '<span class="tag tag-unread">未读</span>' : '';
+    const newBadge = isNewLead(it) ? '<span class="tag tag-new">NEW</span>' : '';
     return `
-      <article class="card">
+      <article class="card ${isUnread(it) ? 'card-unread' : ''}">
         <div class="row">
           <div>
-            <div class="title">${it.sourceUrl ? `<a href="#" data-action="detail" data-id="${it.id}">${it.title || "(无标题)"}</a>` : (it.title || "(无标题)")}</div>
-            <div class="meta">${it.sourcePlatform || "unknown"} · ${it.sourceName || "unknown"} · ${it.postedAt || ""}
-              ${isUnread(it) ? '<span class="tag" style="margin-left:6px;border-color:#f59f00;color:#a56a00;background:#fff4d6;">未读</span>' : ''}
-              ${isNewLead(it) ? '<span class="tag" style="margin-left:6px;border-color:#20c997;color:#0a6b55;background:#dcfff5;">NEW</span>' : ''}
+            <div class="title">${it.sourceUrl ? `<a href="#" data-action="detail" data-id="${escapeHtml(it.id)}">${escapeHtml(it.title || "(无标题)")}</a>` : escapeHtml(it.title || "(无标题)")}</div>
+            <div class="meta">${escapeHtml(it.sourcePlatform || "unknown")} · ${escapeHtml(it.sourceName || "unknown")} · ${escapeHtml(it.postedAt || "")}
+              ${unreadBadge}
+              ${newBadge}
             </div>
           </div>
           <div>${badge(s)}</div>
         </div>
 
-        <div class="desc">${it.description || ""}</div>
+        <div class="desc">${escapeHtml(it.description || "")}</div>
 
         <div class="tags">
-          ${(it.skills || []).map((x) => `<span class="tag">${x}</span>`).join("")}
-          ${it.budget ? `<span class="tag">预算: ${it.budget}</span>` : ""}
-          ${it.type ? `<span class="tag">类型: ${it.type}</span>` : ""}
+          ${(it.skills || []).map((x) => `<span class="tag tag-soft">${escapeHtml(x)}</span>`).join("")}
+          ${it.budget ? `<span class="tag tag-soft">预算: ${escapeHtml(it.budget)}</span>` : ""}
+          ${it.type ? `<span class="tag tag-soft">类型: ${escapeHtml(it.type)}</span>` : ""}
         </div>
 
-        <div class="meta" style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          ${it.contact ? `<span>联系: ${it.contact}</span>` : ""}
-          ${it.sourceUrl ? `<a href="${it.sourceUrl}" target="_blank" rel="noreferrer">原链接</a>` : ""}
-          ${it.sourceUrl ? `<button class="tag" data-action="open" data-url="${it.sourceUrl}" style="cursor:pointer;background:transparent;">打开</button>` : ""}
-          ${it.sourceUrl ? `<button class="tag" data-action="copy" data-url="${it.sourceUrl}" style="cursor:pointer;background:transparent;">复制链接</button>` : ""}
+        <div class="meta actions-row">
+          ${it.contact ? `<span>联系: ${escapeHtml(it.contact)}</span>` : ""}
+          ${it.sourceUrl ? `<a href="${escapeHtml(it.sourceUrl)}" target="_blank" rel="noreferrer">原链接</a>` : ""}
+          ${it.sourceUrl ? `<button class="tag tag-soft" data-action="open" data-url="${escapeHtml(it.sourceUrl)}" type="button">打开</button>` : ""}
+          ${it.sourceUrl ? `<button class="tag tag-soft" data-action="copy" data-url="${escapeHtml(it.sourceUrl)}" type="button">复制链接</button>` : ""}
         </div>
 
-        ${it.notes ? `<div class="meta">备注：${it.notes}</div>` : ""}
+        ${it.notes ? `<div class="meta">备注：${escapeHtml(it.notes)}</div>` : ""}
       </article>
     `;
   }).join("") || `<div class="card">没有匹配结果</div>`;
@@ -234,6 +287,7 @@ async function refreshImportStatus() {
 
 async function refreshData({ keepPage = true } = {}) {
   const currentPage = state.page;
+  const preserved = currentFilters();
   const btn = byId('refreshNow');
   state.nowMs = Date.now();
   try {
@@ -243,15 +297,8 @@ async function refreshData({ keepPage = true } = {}) {
     }
     const items = await loadFromApi();
     state.items = items;
-
-    // 每次刷新后重建筛选项
-    byId('platform').innerHTML = '<option value="">全部平台</option>';
-    byId('type').innerHTML = '<option value="">全部类型</option>';
-    byId('skill').innerHTML = '<option value="">全部技能</option>';
-    setOptions('platform', items.map((i) => i.sourcePlatform));
-    setOptions('type', items.map((i) => i.type));
-    setOptions('skill', items.flatMap((i) => i.skills || []));
-
+    rebuildFilterOptions(items, preserved);
+    restoreFilters(preserved);
     if (keepPage) state.page = currentPage;
     render();
     updateLastUpdated();
@@ -264,21 +311,18 @@ async function refreshData({ keepPage = true } = {}) {
 }
 
 async function init() {
+  state.readMap = JSON.parse(localStorage.getItem('readMap') || '{}');
+
   try {
     await refreshData({ keepPage: false });
   } catch (e) {
-    // 开发兜底：避免白屏
     const r2 = await fetch('/data/items.json');
     if (!r2.ok) throw e;
     state.items = await r2.json();
-    setOptions('platform', state.items.map((i) => i.sourcePlatform));
-    setOptions('type', state.items.map((i) => i.type));
-    setOptions('skill', state.items.flatMap((i) => i.skills || []));
+    rebuildFilterOptions(state.items, currentFilters());
     render();
     updateLastUpdated();
   }
-
-  state.readMap = JSON.parse(localStorage.getItem('readMap') || '{}');
 
   ['q', 'platform', 'type', 'risk', 'skill', 'executableOnly', 'unreadOnly'].forEach((id) => byId(id).addEventListener('input', () => {
     state.page = 1;
@@ -290,6 +334,7 @@ async function init() {
     state.page = 1;
     render();
   });
+
   byId('prevPage').addEventListener('click', () => {
     if (state.page > 1) {
       state.page -= 1;
@@ -297,10 +342,13 @@ async function init() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   });
+
   byId('nextPage').addEventListener('click', () => {
-    state.page += 1;
-    render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (state.page < Math.max(1, Math.ceil(state.filtered.length / state.pageSize))) {
+      state.page += 1;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   });
 
   byId('refreshNow').addEventListener('click', async () => {
@@ -309,8 +357,9 @@ async function init() {
   });
 
   byId('markAllRead').addEventListener('click', () => {
-    const links = byId('list').querySelectorAll('a[data-action="detail"]');
-    links.forEach((a) => markRead(a.getAttribute('data-id')));
+    const start = (state.page - 1) * state.pageSize;
+    const pageArr = state.filtered.slice(start, start + state.pageSize);
+    pageArr.forEach((item) => markRead(item.id));
     render();
   });
 
@@ -328,5 +377,5 @@ async function init() {
 }
 
 init().catch((err) => {
-  byId('list').innerHTML = `<div class="card">加载失败：${String(err)}。请先完成 D1 + Functions 配置。</div>`;
+  byId('list').innerHTML = `<div class="card">加载失败：${escapeHtml(String(err))}。请先完成 D1 + Functions 配置。</div>`;
 });
