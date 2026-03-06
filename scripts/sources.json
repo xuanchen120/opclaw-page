@@ -97,5 +97,14 @@
     "maxPosts": 30,
     "deepFetch": true,
     "category": "savings"
+  },
+  {
+    "url": "https://t.me/s/all_remote_jobs",
+    "sourcePlatform": "telegram",
+    "sourceName": "all_remote_jobs",
+    "tier": "secondary",
+    "maxPosts": 50,
+    "deepFetch": true,
+    "category": "opportunity"
   }
 ]

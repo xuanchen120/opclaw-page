@@ -2,7 +2,7 @@ name: Radar Import
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # every 15 minutes
+    - cron: '*/30 * * * *'  # every 30 minutes, more stable for multi-source import
   workflow_dispatch: {}
 
 jobs:
