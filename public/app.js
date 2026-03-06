@@ -357,8 +357,32 @@ async function init() {
     await refreshImportStatus();
   });
 
+  byId('opportunityPreset').addEventListener('click', () => {
+    byId('q').value = 'category:opportunity freelance remote jobs hiring contract project part-time';
+    byId('executableOnly').checked = false;
+    byId('unreadOnly').checked = false;
+    state.page = 1;
+    render();
+  });
+
+  byId('inspirationPreset').addEventListener('click', () => {
+    byId('q').value = 'category:inspiration';
+    byId('executableOnly').checked = false;
+    byId('unreadOnly').checked = false;
+    state.page = 1;
+    render();
+  });
+
+  byId('savingsPreset').addEventListener('click', () => {
+    byId('q').value = 'category:savings freebies coupon deals rebate free';
+    byId('executableOnly').checked = false;
+    byId('unreadOnly').checked = false;
+    state.page = 1;
+    render();
+  });
+
   byId('devPreset').addEventListener('click', () => {
-    byId('q').value = devKeywords.join(' ');
+    byId('q').value = `category:opportunity ${devKeywords.join(' ')}`;
     byId('executableOnly').checked = true;
     byId('unreadOnly').checked = false;
     state.page = 1;

@@ -16,7 +16,7 @@ const body = {
     url: s.url,
     sourcePlatform: s.sourcePlatform,
     sourceName: s.sourceName,
-    notes: `tier:${s.tier || 'secondary'}`,
+    notes: `tier:${s.tier || 'secondary'} | category:${s.category || 'general'}`,
     maxPosts: s.maxPosts || 80,
     deepFetch: s.deepFetch !== false
   }))

@@ -5,7 +5,8 @@
     "sourceName": "text1024",
     "tier": "secondary",
     "maxPosts": 80,
-    "deepFetch": true
+    "deepFetch": true,
+    "category": "inspiration"
   },
   {
     "url": "https://t.me/s/https1024",
@@ -13,6 +14,61 @@
     "sourceName": "https1024",
     "tier": "secondary",
     "maxPosts": 80,
-    "deepFetch": true
+    "deepFetch": true,
+    "category": "inspiration"
+  },
+  {
+    "url": "https://t.me/s/FreelanceJobZone",
+    "sourcePlatform": "telegram",
+    "sourceName": "FreelanceJobZone",
+    "tier": "primary",
+    "maxPosts": 60,
+    "deepFetch": true,
+    "category": "opportunity"
+  },
+  {
+    "url": "https://t.me/s/remotejobss",
+    "sourcePlatform": "telegram",
+    "sourceName": "remotejobss",
+    "tier": "primary",
+    "maxPosts": 60,
+    "deepFetch": true,
+    "category": "opportunity"
+  },
+  {
+    "url": "https://t.me/s/remote_jobs_for_you",
+    "sourcePlatform": "telegram",
+    "sourceName": "remote_jobs_for_you",
+    "tier": "primary",
+    "maxPosts": 60,
+    "deepFetch": true,
+    "category": "opportunity"
+  },
+  {
+    "url": "https://t.me/s/smartremotejobs",
+    "sourcePlatform": "telegram",
+    "sourceName": "smartremotejobs",
+    "tier": "secondary",
+    "maxPosts": 50,
+    "deepFetch": true,
+    "category": "opportunity"
+  },
+  {
+    "url": "https://t.me/s/Hunt4Freebies",
+    "sourcePlatform": "telegram",
+    "sourceName": "Hunt4Freebies",
+    "tier": "secondary",
+    "maxPosts": 40,
+    "deepFetch": true,
+    "category": "savings"
+  },
+  {
+    "url": "https://t.me/s/thefreebieguy",
+    "sourcePlatform": "telegram",
+    "sourceName": "thefreebieguy",
+    "tier": "secondary",
+    "maxPosts": 40,
+    "deepFetch": true,
+    "category": "savings"
   }
 ]
