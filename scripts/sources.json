@@ -70,5 +70,32 @@
     "maxPosts": 40,
     "deepFetch": true,
     "category": "savings"
+  },
+  {
+    "url": "https://t.me/s/couponwithkayla",
+    "sourcePlatform": "telegram",
+    "sourceName": "couponwithkayla",
+    "tier": "secondary",
+    "maxPosts": 40,
+    "deepFetch": true,
+    "category": "savings"
+  },
+  {
+    "url": "https://t.me/s/dollardealsfreebies",
+    "sourcePlatform": "telegram",
+    "sourceName": "dollardealsfreebies",
+    "tier": "secondary",
+    "maxPosts": 40,
+    "deepFetch": true,
+    "category": "savings"
+  },
+  {
+    "url": "https://t.me/s/megan71603",
+    "sourcePlatform": "telegram",
+    "sourceName": "megan71603",
+    "tier": "secondary",
+    "maxPosts": 30,
+    "deepFetch": true,
+    "category": "savings"
   }
 ]

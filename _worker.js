@@ -46,6 +46,18 @@ function isSoftBlocked(text = "") {
   return SOFT_BLOCK_KEYWORDS.some((k) => t.includes(k));
 }
 
+function noteHasCategory(notes = "", category = "") {
+  return String(notes).toLowerCase().includes(`category:${String(category).toLowerCase()}`);
+}
+
+function isOpportunitySource(notes = "") {
+  return noteHasCategory(notes, 'opportunity');
+}
+
+function isSavingsSource(notes = "") {
+  return noteHasCategory(notes, 'savings');
+}
+
 function hasDevIntent(text = "") {
   const t = String(text).toLowerCase();
   return DEV_POSITIVE_KEYWORDS.some((k) => t.includes(k));
@@ -118,6 +130,7 @@ function isHardBlocked(item) {
 
 function isLowValueNoise(item) {
   const text = `${item.title || ""} ${item.description || ""} ${item.notes || ""}`;
+  if (isOpportunitySource(item.notes) || isSavingsSource(item.notes)) return false;
   return isSoftBlocked(text) && !hasDevIntent(text);
 }
 
@@ -237,7 +250,7 @@ async function handleImport(request, env) {
         let skipped = 0;
         for (const p of posts) {
           const textAll = `${p.title} ${p.rawText}`;
-          if (isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
+          if (!isOpportunitySource(src.notes) && !isSavingsSource(src.notes) && isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
             skipped++;
             continue;
           }
@@ -282,7 +295,7 @@ async function handleImport(request, env) {
 
           for (const p of older.posts) {
             const textAll = `${p.title} ${p.rawText}`;
-            if (isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
+            if (!isOpportunitySource(src.notes) && !isSavingsSource(src.notes) && isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
               skipped++;
               continue;
             }
@@ -325,7 +338,7 @@ async function handleImport(request, env) {
       const title = src.title || titleFromHtml(html);
       const textAll = `${title} ${t}`;
 
-      if (isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
+      if (!isOpportunitySource(src.notes) && !isSavingsSource(src.notes) && isSoftBlocked(textAll) && !hasDevIntent(textAll)) {
         out.push({ url: src.url, skipped: true, reason: 'soft-blocked-noise', mode: 'single-page' });
         continue;
       }
