@@ -142,5 +142,14 @@
     "maxPosts": 40,
     "deepFetch": true,
     "category": "observation"
+  },
+  {
+    "url": "https://t.me/s/yunying23",
+    "sourcePlatform": "telegram",
+    "sourceName": "yunying23",
+    "tier": "primary",
+    "maxPosts": 50,
+    "deepFetch": true,
+    "category": "inspiration"
   }
 ]
