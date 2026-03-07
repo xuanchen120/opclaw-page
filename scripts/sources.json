@@ -151,5 +151,14 @@
     "maxPosts": 50,
     "deepFetch": true,
     "category": "inspiration"
+  },
+  {
+    "url": "https://t.me/s/affiliate_marketing_tips",
+    "sourcePlatform": "telegram",
+    "sourceName": "affiliate_marketing_tips",
+    "tier": "secondary",
+    "maxPosts": 40,
+    "deepFetch": true,
+    "category": "inspiration"
   }
 ]
