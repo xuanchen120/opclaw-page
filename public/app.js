@@ -67,6 +67,49 @@ function execFieldCount(it) {
   return n;
 }
 
+function leadLane(it) {
+  const notes = `${it.notes || ''}`.toLowerCase();
+  if (notes.includes('category:savings')) return 'savings';
+  if (notes.includes('category:opportunity')) return 'opportunity';
+  if (notes.includes('category:inspiration')) return 'inspiration';
+  return 'general';
+}
+
+function moneyScore(it) {
+  let s = calcScore(it);
+  const lane = leadLane(it);
+  if (lane === 'opportunity') s += 18;
+  if (lane === 'savings') s += 12;
+  if (lane === 'inspiration') s -= 8;
+  if (it.contact) s += 10;
+  if (it.signals?.clearBudget) s += 12;
+  if (it.signals?.clearScope) s += 8;
+  if (execFieldCount(it) >= 2) s += 10;
+  if (isNewLead(it)) s += 6;
+  return Math.max(0, Math.min(120, s));
+}
+
+function moneyTags(it) {
+  const tags = [];
+  const lane = leadLane(it);
+  if (lane === 'opportunity') tags.push('赚钱机会');
+  if (lane === 'savings') tags.push('省钱机会');
+  if (lane === 'inspiration') tags.push('灵感观察');
+  if (it.contact) tags.push('可立即联系');
+  if (execFieldCount(it) >= 2) tags.push('今晚可做');
+  if ((it.skills || []).some((x) => devKeywords.includes(String(x).toLowerCase()))) tags.push('适合程序员');
+  return tags.slice(0, 4);
+}
+
+function moneyHint(it) {
+  const lane = leadLane(it);
+  if (lane === 'savings') return '先看是否能立刻省钱/返现';
+  if (it.contact) return '优先联系，别拖过今天';
+  if (execFieldCount(it) >= 2) return '信息较完整，适合今晚行动';
+  if (lane === 'opportunity') return '值得观察，补充判断后可尝试';
+  return '先收藏观察，不急着投入时间';
+}
+
 function isUnread(it) {
   return !state.readMap[it.id];
 }
@@ -170,7 +213,7 @@ function render() {
       if (unreadOnly && !isUnread(it)) return false;
       return true;
     })
-    .sort((a, b) => calcScore(b) - calcScore(a));
+    .sort((a, b) => moneyScore(b) - moneyScore(a));
 
   state.filtered = arr;
 
@@ -183,6 +226,21 @@ function render() {
   byId("k-mid").textContent = mid;
   byId("k-bad").textContent = bad;
 
+  const todayTop = arr.slice(0, 5);
+  const todayEl = byId('todayList');
+  if (todayEl) {
+    todayEl.innerHTML = todayTop.map((it, idx) => `
+      <article class="today-card">
+        <div class="today-rank">${idx + 1}</div>
+        <div class="today-body">
+          <div class="today-title">${escapeHtml(it.title || '(无标题)')}</div>
+          <div class="meta">${moneyTags(it).map((x) => `<span class="tag tag-soft">${escapeHtml(x)}</span>`).join('')}</div>
+          <div class="meta" style="margin:4px 0 0 0;">${escapeHtml(moneyHint(it))}</div>
+        </div>
+      </article>
+    `).join('') || `<div class="card">今天还没有值得优先处理的线索</div>`;
+  }
+
   const totalPages = Math.max(1, Math.ceil(arr.length / state.pageSize));
   if (state.page > totalPages) state.page = totalPages;
   const start = (state.page - 1) * state.pageSize;
@@ -194,6 +252,7 @@ function render() {
 
   byId("list").innerHTML = pageArr.map((it) => {
     const s = calcScore(it);
+    const m = moneyScore(it);
     const unreadBadge = isUnread(it) ? '<span class="tag tag-unread">未读</span>' : '';
     const newBadge = isNewLead(it) ? '<span class="tag tag-new">NEW</span>' : '';
     return `
@@ -206,12 +265,13 @@ function render() {
               ${newBadge}
             </div>
           </div>
-          <div>${badge(s)}</div>
+          <div>${badge(s)}<span class="badge money-badge">赚钱值 ${m}</span></div>
         </div>
 
         <div class="desc">${escapeHtml(it.description || "")}</div>
 
         <div class="tags">
+          ${moneyTags(it).map((x) => `<span class="tag tag-money">${escapeHtml(x)}</span>`).join('')}
           ${(it.skills || []).map((x) => `<span class="tag tag-soft">${escapeHtml(x)}</span>`).join("")}
           ${it.budget ? `<span class="tag tag-soft">预算: ${escapeHtml(it.budget)}</span>` : ""}
           ${it.type ? `<span class="tag tag-soft">类型: ${escapeHtml(it.type)}</span>` : ""}

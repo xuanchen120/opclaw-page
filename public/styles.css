@@ -94,7 +94,8 @@ input:focus, select:focus {
 .kpi,
 .toolbar,
 .pager,
-.card {
+.card,
+.today-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
@@ -107,6 +108,53 @@ input:focus, select:focus {
 
 .kpi .n { font-size: 22px; font-weight: 700; }
 .kpi .l { color: var(--muted); font-size: 12px; }
+
+.today-panel {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.today-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.today-list {
+  display: grid;
+  gap: 8px;
+}
+
+.today-card {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.today-rank {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #dbe7ff;
+  color: #294ea7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.today-title {
+  font-weight: 700;
+  line-height: 1.4;
+}
 
 .toolbar {
   display: flex;
@@ -205,6 +253,17 @@ input:focus, select:focus {
 .tag-soft {
   color: #3559b8;
   background: #eef4ff;
+}
+
+.tag-money {
+  color: #6b4a00;
+  border-color: #ffd57a;
+  background: #fff2c7;
+}
+
+.money-badge {
+  color: #6b4a00;
+  background: #fff2c7;
 }
 
 .tag-unread {
