@@ -72,6 +72,7 @@ function leadLane(it) {
   if (notes.includes('category:savings')) return 'savings';
   if (notes.includes('category:opportunity')) return 'opportunity';
   if (notes.includes('category:inspiration')) return 'inspiration';
+  if (notes.includes('category:observation')) return 'observation';
   return 'general';
 }
 
@@ -81,6 +82,7 @@ function moneyScore(it) {
   if (lane === 'opportunity') s += 18;
   if (lane === 'savings') s += 12;
   if (lane === 'inspiration') s -= 8;
+  if (lane === 'observation') s -= 18;
   if (it.contact) s += 10;
   if (it.signals?.clearBudget) s += 12;
   if (it.signals?.clearScope) s += 8;
@@ -95,6 +97,7 @@ function moneyTags(it) {
   if (lane === 'opportunity') tags.push('赚钱机会');
   if (lane === 'savings') tags.push('省钱机会');
   if (lane === 'inspiration') tags.push('灵感观察');
+  if (lane === 'observation') tags.push('高风险观察');
   if (it.contact) tags.push('可立即联系');
   if (execFieldCount(it) >= 2) tags.push('今晚可做');
   if ((it.skills || []).some((x) => devKeywords.includes(String(x).toLowerCase()))) tags.push('适合程序员');
@@ -104,6 +107,7 @@ function moneyTags(it) {
 function moneyHint(it) {
   const lane = leadLane(it);
   if (lane === 'savings') return '先看是否能立刻省钱/返现';
+  if (lane === 'observation') return '仅观察，不建议直接下场';
   if (it.contact) return '优先联系，别拖过今天';
   if (execFieldCount(it) >= 2) return '信息较完整，适合今晚行动';
   if (lane === 'opportunity') return '值得观察，补充判断后可尝试';
@@ -439,6 +443,14 @@ async function init() {
 
   on('savingsPreset', 'click', () => {
     byId('q').value = 'category:savings freebies coupon deals rebate free';
+    byId('executableOnly').checked = false;
+    byId('unreadOnly').checked = false;
+    state.page = 1;
+    render();
+  });
+
+  on('observationPreset', 'click', () => {
+    byId('q').value = 'category:observation';
     byId('executableOnly').checked = false;
     byId('unreadOnly').checked = false;
     state.page = 1;

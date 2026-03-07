@@ -106,5 +106,41 @@
     "maxPosts": 50,
     "deepFetch": true,
     "category": "opportunity"
+  },
+  {
+    "url": "https://t.me/s/indiehackertools",
+    "sourcePlatform": "telegram",
+    "sourceName": "indiehackertools",
+    "tier": "primary",
+    "maxPosts": 50,
+    "deepFetch": true,
+    "category": "inspiration"
+  },
+  {
+    "url": "https://t.me/s/chuangyesilu",
+    "sourcePlatform": "telegram",
+    "sourceName": "chuangyesilu",
+    "tier": "primary",
+    "maxPosts": 50,
+    "deepFetch": true,
+    "category": "inspiration"
+  },
+  {
+    "url": "https://t.me/s/chunse1024",
+    "sourcePlatform": "telegram",
+    "sourceName": "chunse1024",
+    "tier": "secondary",
+    "maxPosts": 50,
+    "deepFetch": true,
+    "category": "inspiration"
+  },
+  {
+    "url": "https://t.me/s/judian",
+    "sourcePlatform": "telegram",
+    "sourceName": "judian",
+    "tier": "secondary",
+    "maxPosts": 40,
+    "deepFetch": true,
+    "category": "observation"
   }
 ]
